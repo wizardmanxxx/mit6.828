@@ -49,7 +49,7 @@ int mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	cprintf("  edata  %08x (virt)  %08x (phys)\n", edata, edata - KERNBASE);
 	cprintf("  end    %08x (virt)  %08x (phys)\n", end, end - KERNBASE);
 	cprintf("Kernel executable memory footprint: %dKB\n",
-		ROUNDUP(end - entry, 1024) / 1024);
+			ROUNDUP(end - entry, 1024) / 1024);
 	return 0;
 }
 
@@ -59,24 +59,23 @@ int mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	uint32_t n = read_ebp();
 	int *nebp = (int *)n;
 	int *ebp = (int *)(*nebp);
+	cprintf("Stack backtrace:\n");
 	while ((int)ebp != 0x0)
 	{
 
-		int *eip = (int *)nebp - 1;
-		ebp = (int*)(*nebp);
-		int *arg0 = eip - 1;
-		int *arg1 = arg0 - 1;
-		int *arg2 = arg1 - 1;
-		int *arg3 = arg2 -1 ;
-		int *arg4 = arg3 -1;
-		cprintf("ebp %08x eip %08x args %08x %08x %08x %08x %08x\n", *ebp,*eip,*arg0,*arg1,*arg2,*arg3,*arg4);
+		int *eip = (int *)nebp + 1;
+		ebp = (int *)(*nebp);
+		int *arg0 = eip + 1;
+		int *arg1 = arg0 + 1;
+		int *arg2 = arg1 + 1;
+		int *arg3 = arg2 + 1;
+		int *arg4 = arg3 + 1;
+		cprintf("ebp %08x eip %08x args %08x %08x %08x %08x %08x\n", *ebp, *eip, *arg0, *arg1, *arg2, *arg3, *arg4);
 		nebp = ebp;
 	}
 
 	return 0;
 }
-
-
 
 /***** Kernel monitor command interpreter *****/
 
