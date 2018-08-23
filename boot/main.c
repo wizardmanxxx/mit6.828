@@ -39,9 +39,9 @@ void
 bootmain(void)
 {
 	struct Proghdr *ph, *eph;
-	// test sync git
-	// not work?
+
 	// read 1st page off disk
+	//从第一个扇区载入4096字节 到 0x10000(物理地址)
 	readseg((uint32_t) ELFHDR, SECTSIZE*8, 0);
 
 	// is this a valid ELF?
@@ -49,11 +49,15 @@ bootmain(void)
 		goto bad;
 
 	// load each program segment (ignores ph flags)
+	// phoff program segment的偏移量 
+	// ph 为program segment table 所在的地址
 	ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+	// kernel program segment table last position
 	eph = ph + ELFHDR->e_phnum;
 	for (; ph < eph; ph++)
 		// p_pa is the load address of this segment (as well
 		// as the physical address)
+		// p_offset 相对于elf头的偏移地址
 		readseg(ph->p_pa, ph->p_memsz, ph->p_offset);
 
 	// call the entry point from the ELF header
@@ -73,13 +77,18 @@ void
 readseg(uint32_t pa, uint32_t count, uint32_t offset)
 {
 	uint32_t end_pa;
-
+	//结束物理内存地址
 	end_pa = pa + count;
 
 	// round down to sector boundary
+	// ~(0010 0000 0000-1)&0x2eb
+	// ~(0000 0001 1111 1111)&(0011 1110 1000)
+	//1111 1110 0000 0000&(0011 1110 1000)
+	// 2*9 0~8全部归零 达到对齐效果。1000即 512
 	pa &= ~(SECTSIZE - 1);
 
 	// translate from bytes to sectors, and kernel starts at sector 1
+	// 相对于ELF头的偏移位置，ELF头在1扇区，1000的话即在2扇区
 	offset = (offset / SECTSIZE) + 1;
 
 	// If this is too slow, we could read lots of sectors at a time.
@@ -91,7 +100,9 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 		// use physical addresses directly.  This won't be the
 		// case once JOS enables the MMU.
 		readsect((uint8_t*) pa, offset);
+		//当前存放到的位置
 		pa += SECTSIZE;
+		// 第几扇区
 		offset++;
 	}
 }
@@ -109,7 +120,7 @@ readsect(void *dst, uint32_t offset)
 {
 	// wait for disk to be ready
 	waitdisk();
-
+	// 地址是32位
 	outb(0x1F2, 1);		// count = 1
 	outb(0x1F3, offset);
 	outb(0x1F4, offset >> 8);

@@ -343,6 +343,7 @@ bootmain(void)
 	// test sync git
 	// not work?
 	// read 1st page off disk
+  //ELFHDR = 0x10000 64KB  SIZE = 4KB
 	readseg((uint32_t) ELFHDR, SECTSIZE*8, 0);
     7d1a:	6a 00                	push   $0x0
     7d1c:	68 00 10 00 00       	push   $0x1000

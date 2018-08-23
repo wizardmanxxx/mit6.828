@@ -12,11 +12,19 @@ pte_t entry_pgtable[NPTENTRIES];
 // region is critical for a few instructions in entry.S and then we
 // never use it again.
 //
+// entry.S
+// 映射 KERNBASE+0，KERNELBASE+4MB 到 0,4MB
+// 4KB /4B = 1K个页表项，每一个页表项对应一个页面 20bit | 12bit (20页面索引)(12bit 页内偏移)
+// 所以 1K*4KB = 4MB 的地址空间						 
+// 这足以提供早期的内核启动
+// [0,4MB] 映射为[0,4MB] 因为这个区域对于entry.S 中的一些指令很重要，并且我们不会再使用到这个区域
+//
 // Page directories (and page tables), must start on a page boundary,
 // hence the "__aligned__" attribute.  Also, because of restrictions
 // related to linking and static initializers, we use "x + PTE_P"
 // here, rather than the more standard "x | PTE_P".  Everywhere else
 // you should use "|" to combine flags.
+
 __attribute__((__aligned__(PGSIZE)))
 pde_t entry_pgdir[NPDENTRIES] = {
 	// Map VA's [0, 4MB) to PA's [0, 4MB)
@@ -29,6 +37,8 @@ pde_t entry_pgdir[NPDENTRIES] = {
 
 // Entry 0 of the page table maps to physical page 0, entry 1 to
 // physical page 1, etc.
+// nptentries 每个pt（page table）中的条目数
+// (20,12)后12位为flag位
 __attribute__((__aligned__(PGSIZE)))
 pte_t entry_pgtable[NPTENTRIES] = {
 	0x000000 | PTE_P | PTE_W,

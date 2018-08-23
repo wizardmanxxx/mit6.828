@@ -45,6 +45,12 @@ seta20.2:
   # and segment translation that makes virtual addresses 
   # identical to their physical addresses, so that the 
   # effective memory map does not change during the switch.
+  # gdt表一个记录8字节  32（base）|20（limit）|12（flag）  
+  # 分段功能 段基址|段长|段标记
+  # 实模式下的 6 个段寄存器 CS、 DS、 ES、 FS、 GS 和 SS，在保护模式下叫做段选择器
+  # 在保护模式下，尽管访问内存时也需要指定一个段，但传送到段选择器的内容不是逻辑段地址，
+  # 而是段描述符在描述符表中的索引号。在保护模式下访问一个段时，传送到段选择器的是段选择符，也叫段选择子
+  # 16位的段选择器只使用13位作为索引
   lgdt    gdtdesc
   movl    %cr0, %eax
   orl     $CR0_PE_ON, %eax

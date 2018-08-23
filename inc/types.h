@@ -61,6 +61,7 @@ typedef int32_t off_t;
 	(typeof(a)) (__a - __a % (n));				\
 })
 // Round up to the nearest multiple of n
+// 逗号表达式
 #define ROUNDUP(a, n)						\
 ({								\
 	uint32_t __n = (uint32_t) (n);				\
