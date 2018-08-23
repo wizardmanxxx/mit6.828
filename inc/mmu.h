@@ -149,6 +149,8 @@
 #include <inc/types.h>
 
 // Segment Descriptors
+// 段描述符 64位
+// 结构体变量申明加冒号：位域
 struct Segdesc {
 	unsigned sd_lim_15_0 : 16;  // Low bits of segment limit
 	unsigned sd_base_15_0 : 16; // Low bits of segment base address

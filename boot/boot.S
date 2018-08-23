@@ -4,11 +4,19 @@
 # The BIOS loads this code from the first sector of the hard disk into
 # memory at physical address 0x7c00 and starts executing in real mode
 # with %cs=0 %ip=7c00.
-
+# 启动cpu，转化到32位保护模式，跳转到c语言
+# bios 从0号扇区加载此代码到0x7c00 内存处，以实模式启动。
+# AT&T 风格的汇编命令都由 . 开头
+# .global伪指令：该伪指令的含义是让global过的符号对链接器可见，也就是说，一个函数或变量，通常情况下只在本文件内有效，
+#     当需要在外部引用该文件里的某一个函数或变量时，必须首先将该函数或变量使用.global伪指令进行声明。
+# .text伪指令表示从当前位置开始的内容被归并到代码段中。
+# .align伪指令：内存对齐
 .set PROT_MODE_CSEG, 0x8         # kernel code segment selector
 .set PROT_MODE_DSEG, 0x10        # kernel data segment selector
 .set CR0_PE_ON,      0x1         # protected mode enable flag
 
+# .globl 告诉汇编器这个符号要被连接器用到。在符号表中标记他是一个全局符号
+# start 符号比较特殊，代表程序的入口
 .globl start
 start:
   .code16                     # Assemble for 16-bit mode
@@ -58,11 +66,13 @@ seta20.2:
   
   # Jump to next instruction, but in 32-bit code segment.
   # Switches processor into 32-bit mode.
+  # 保护模式下的code 段选择子（sector）
   ljmp    $PROT_MODE_CSEG, $protcseg
 
   .code32                     # Assemble for 32-bit mode
 protcseg:
   # Set up the protected-mode data segment registers
+  # 所有段选择器都指向数据段
   movw    $PROT_MODE_DSEG, %ax    # Our data segment selector
   movw    %ax, %ds                # -> DS: Data Segment
   movw    %ax, %es                # -> ES: Extra Segment
@@ -86,6 +96,6 @@ gdt:
   SEG(STA_W, 0x0, 0xffffffff)	        # data seg
 
 gdtdesc:
-  .word   0x17                            # sizeof(gdt) - 1
+  .word   0x17                            # sizeof(gdt) - 1  .word 即当前位置放一个word类型的值
   .long   gdt                             # address gdt
 
