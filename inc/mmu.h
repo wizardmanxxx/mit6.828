@@ -5,6 +5,8 @@
  * This file contains definitions for the x86 memory management unit (MMU),
  * including paging- and segmentation-related data structures and constants,
  * the %cr0, %cr4, and %eflags registers, and traps.
+ * 该文件包含内存管理单元的定义，数据结构和常数。
+ * 
  */
 
 /*
@@ -14,7 +16,7 @@
  */
 
 // A linear address 'la' has a three-part structure as follows:
-//
+// 分段处理之后地址为linear address
 // +--------10------+-------10-------+---------12----------+
 // | Page Directory |   Page Table   | Offset within Page  |
 // |      Index     |      Index     |                     |
@@ -25,23 +27,27 @@
 // The PDX, PTX, PGOFF, and PGNUM macros decompose linear addresses as shown.
 // To construct a linear address la from PDX(la), PTX(la), and PGOFF(la),
 // use PGADDR(PDX(la), PTX(la), PGOFF(la)).
-
+// PDX 页目录索引（一级页表） PTX页表索引（二级页表） PGOFF（页内偏移）
 // page number field of address
 #define PGNUM(la)	(((uintptr_t) (la)) >> PTXSHIFT)
 
 // page directory index
+// 页目录号索引
 #define PDX(la)		((((uintptr_t) (la)) >> PDXSHIFT) & 0x3FF)
 
 // page table index
+// 页表索引
 #define PTX(la)		((((uintptr_t) (la)) >> PTXSHIFT) & 0x3FF)
 
 // offset in page
+// 页内偏移
 #define PGOFF(la)	(((uintptr_t) (la)) & 0xFFF)
 
 // construct linear address from indexes and offset
 #define PGADDR(d, t, o)	((void*) ((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
 
 // Page directory and page table constants.
+// 页目录和页表相关常量
 #define NPDENTRIES	1024		// page directory entries per page directory
 #define NPTENTRIES	1024		// page table entries per page table
 
@@ -50,7 +56,7 @@
 
 #define PTSIZE		(PGSIZE*NPTENTRIES) // bytes mapped by a page directory entry
 #define PTSHIFT		22		// log2(PTSIZE)
-
+// 上面用到的左移，右移
 #define PTXSHIFT	12		// offset of PTX in a linear address
 #define PDXSHIFT	22		// offset of PDX in a linear address
 

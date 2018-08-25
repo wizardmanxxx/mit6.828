@@ -109,10 +109,13 @@
  */
 
 // User read-only virtual page table (see 'uvpt' below)
+// user virtual page table 用户虚拟页表
 #define UVPT		(ULIM - PTSIZE)
 // Read-only copies of the Page structures
+// 用户只读页表
 #define UPAGES		(UVPT - PTSIZE)
 // Read-only copies of the global env structures
+// 用户全局环境
 #define UENVS		(UPAGES - PTSIZE)
 
 /*

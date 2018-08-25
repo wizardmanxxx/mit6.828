@@ -36,6 +36,9 @@
 # '_start' specifies the ELF entry point.  Since we haven't set up
 # virtual memory when the bootloader enters this code, we need the
 # bootloader to jump to the *physical* address of the entry point.
+
+# _start 指明ELF文件的入口，由于当bootloader进去这个代码时，我们没有设置好虚拟内存，所以需要 让程序跳转到实际的地址。
+
 .globl		_start
 _start = RELOC(entry)
 
@@ -60,21 +63,25 @@ entry:
 	# Turn on paging.
 	movl	%cr0, %eax
 	orl	$(CR0_PE|CR0_PG|CR0_WP), %eax
+	# cr0 保护模式寄存器
 	movl	%eax, %cr0
 
 	# Now paging is enabled, but we're still running at a low EIP
 	# (why is this okay?).  Jump up above KERNBASE before entering
 	# C code.
 	mov	$relocated, %eax
+	# 现在可以跳转到虚拟地址
 	jmp	*%eax
 relocated:
 
 	# Clear the frame pointer register (EBP)
 	# so that once we get into debugging C code,
 	# stack backtraces will be terminated properly.
+	# EBP设置为零，这样在debug模式下找到可以终止的时刻。
 	movl	$0x0,%ebp			# nuke frame pointer
 
 	# Set the stack pointer
+	# 栈的地址
 	movl	$(bootstacktop),%esp
 
 	# now to C code
