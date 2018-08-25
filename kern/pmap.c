@@ -303,11 +303,12 @@ page_alloc(int alloc_flags)
 	struct PageInfo *p = NULL;
 	if (page_free_list == NULL)
 		return NULL;
+
+	p = page_free_list;
+	page_free_list = p->pp_link;
+	p->pp_link = NULL;
 	if (alloc_flags & ALLOC_ZERO)
 	{
-		p = page_free_list;
-		page_free_list = p->pp_link;
-		p->pp_link = NULL;
 		memset(page2kva(p), 0, PGSIZE);
 	}
 
@@ -324,13 +325,15 @@ void page_free(struct PageInfo *pp)
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
 
-	if(pp->pp_ref!=0||pp->pp_link!=NULL){
+	if (pp->pp_ref != 0 || pp->pp_link != NULL)
+	{
 		panic("still in used!");
-	}else{
+	}
+	else
+	{
 		pp->pp_link = page_free_list;
 		page_free_list = pp;
 	}
-
 }
 
 //
