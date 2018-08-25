@@ -143,7 +143,7 @@ void mem_init(void)
 
 	// Permissions: kernel R, user R
 	kern_pgdir[PDX(UVPT)] = PADDR(kern_pgdir) | PTE_U | PTE_P;
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// Allocate an array of npages 'struct PageInfo's and store it in 'pages'.
 	// The kernel uses this array to keep track of physical pages: for
@@ -241,10 +241,11 @@ void page_init(void)
 	// The example code here marks all physical pages as free.
 	// However this is not truly the case.  What memory is free?
 	//  1) Mark physical page 0 as in use.
+	//     中断向量表
 	//     This way we preserve the real-mode IDT and BIOS structures
 	//     in case we ever need them.  (Currently we don't, but...)
 	//  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
-	//     is free.
+	//     is free.	(BOOT Loader elf文件头不用了吗？)
 	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
 	//     never be allocated.
 	//  4) Then extended memory [EXTPHYSMEM, ...).
@@ -256,11 +257,30 @@ void page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
+
+	// IDT|xxx
+
 	for (i = 0; i < npages; i++)
 	{
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+
+		if (i == 0)
+		{
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+			continue;
+		}
+		else if (i > npages_basemem - 1 && i < PADDR(boot_alloc(0)) / PGSIZE)
+		{
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+			continue;
+		}
+		else
+		{
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
@@ -280,7 +300,20 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	return 0;
+	struct PageInfo *p;
+	if (alloc_flags & ALLOC_ZERO)
+	{
+
+		if (page_free_list == NULL)
+			p = NULL;
+
+		p = page_free_list;
+		page_free_list = p->pp_link;
+		p->pp_link = NULL;
+		memset(page2kva(p), 0, PGSIZE);
+	}
+
+	return p;
 }
 
 //
@@ -292,6 +325,14 @@ void page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+
+	if(pp->pp_ref!=0||pp->pp_link!=NULL){
+		panic("still in used!");
+	}else{
+		pp->pp_link = page_free_list;
+		page_free_list = pp;
+	}
+
 }
 
 //

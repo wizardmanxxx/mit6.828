@@ -21,6 +21,8 @@ extern pde_t *kern_pgdir;
  * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
  * and returns the corresponding physical address.  It panics if you pass it a
  * non-kernel virtual address.
+ * 
+ * 内核虚拟地址转化为物理地址，如果非内核地址则报错
  */
 #define PADDR(kva) _paddr(__FILE__, __LINE__, kva)
 
@@ -33,7 +35,9 @@ _paddr(const char *file, int line, void *kva)
 }
 
 /* This macro takes a physical address and returns the corresponding kernel
- * virtual address.  It panics if you pass an invalid physical address. */
+ * virtual address.  It panics if you pass an invalid physical address. 
+ * 接收一个物理地址，返回相应的内核虚拟地址
+ */
 #define KADDR(pa) _kaddr(__FILE__, __LINE__, pa)
 
 static inline void*

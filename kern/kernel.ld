@@ -49,6 +49,7 @@ SECTIONS
 
 	PROVIDE(edata = .);
 
+	 /* 存放未初始化的全局变量，将.data和.bss分开的理由是为了节约磁盘空间，.bss不占实际的磁盘空间。*/
 	.bss : {
 		*(.bss)
 	}
