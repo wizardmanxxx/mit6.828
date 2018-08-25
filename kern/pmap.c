@@ -301,12 +301,10 @@ page_alloc(int alloc_flags)
 {
 	// Fill this function in
 	struct PageInfo *p = NULL;
+	if (page_free_list == NULL)
+		return NULL;
 	if (alloc_flags & ALLOC_ZERO)
 	{
-
-		if (page_free_list == NULL)
-			p = NULL;
-
 		p = page_free_list;
 		page_free_list = p->pp_link;
 		p->pp_link = NULL;
