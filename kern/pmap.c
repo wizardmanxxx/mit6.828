@@ -99,7 +99,7 @@ boot_alloc(uint32_t n)
 	// LAB 2: Your code here.
 	result = nextfree;
 	nextfree = ROUNDUP(nextfree + n, PGSIZE);
-	if (nextfree - KERNBASE > npages * PGSIZE)
+	if ((int)nextfree - KERNBASE > npages * PGSIZE)
 	{
 		panic("Out of memory!\n");
 	}
@@ -300,7 +300,7 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	struct PageInfo *p;
+	struct PageInfo *p = NULL;
 	if (alloc_flags & ALLOC_ZERO)
 	{
 
