@@ -373,7 +373,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
 	int index = PDX(va);
-	if (!pgdir[index] & PTE_P)
+	if (!(pgdir[index] & PTE_P))
 	{
 		if (create == 0)
 			return NULL;
