@@ -372,7 +372,7 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	int index = PDX(va);
+int index = PDX(va);
 	if (!(pgdir[index] & PTE_P))
 	{
 		if (create == 0)
@@ -387,7 +387,8 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		pgdir[index] = page2pa(p) | PTE_P | PTE_U | PTE_W;
 	}
 	// 返回的页表项的虚拟地址
-	pte_t *pte = KADDR(PTE_ADDR(pgdir[index])) + PTX(va);
+	
+	pte_t *pte = (pte_t *)KADDR(PTE_ADDR(pgdir[index])) + PTX(va);
 
 	return pte;
 }
@@ -447,19 +448,17 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 //
 int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	 pte_t *entry = NULL;
-    entry =  pgdir_walk(pgdir, va, 1);    //Get the mapping page of this address va.
-    if(entry == NULL) return -E_NO_MEM;
-
-    pp->pp_ref++;
-    if((*entry) & PTE_P)             //If this virtual address is already mapped.
-    {
-        tlb_invalidate(pgdir, va);
-        page_remove(pgdir, va);
-    }
-    *entry = (page2pa(pp) | perm | PTE_P);
-    pgdir[PDX(va)] |= perm;                  //Remember this step!
-
+	pte_t *p = pgdir_walk(pgdir, va, 1);
+	if (p == NULL)
+	{
+		return -E_NO_MEM;
+	}
+	pp->pp_ref++;
+	if (*p & PTE_P)
+	{
+		page_remove(pgdir,va);
+	}
+	*p = page2pa(pp) | perm | PTE_P;
 	return 0;
 }
 

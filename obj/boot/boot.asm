@@ -5,8 +5,8 @@ obj/boot/boot.out:     file format elf32-i386
 Disassembly of section .text:
 
 00007c00 <start>:
-.set CR0_PE_ON,      0x1         # protected mode enable flag
-
+# .globl 告诉汇编器这个符号要被连接器用到。在符号表中标记他是一个全局符号
+# start 符号比较特殊，代表程序的入口
 .globl start
 start:
   .code16                     # Assemble for 16-bit mode
@@ -57,11 +57,11 @@ seta20.2:
     7c1a:	b0 df                	mov    $0xdf,%al
   outb    %al,$0x60
     7c1c:	e6 60                	out    %al,$0x60
-
-  # Switch from real to protected mode, using a bootstrap GDT
-  # and segment translation that makes virtual addresses 
-  # identical to their physical addresses, so that the 
-  # effective memory map does not change during the switch.
+  # 分段功能 段基址|段长|段标记
+  # 实模式下的 6 个段寄存器 CS、 DS、 ES、 FS、 GS 和 SS，在保护模式下叫做段选择器
+  # 在保护模式下，尽管访问内存时也需要指定一个段，但传送到段选择器的内容不是逻辑段地址，
+  # 而是段描述符在描述符表中的索引号。在保护模式下访问一个段时，传送到段选择器的是段选择符，也叫段选择子
+  # 16位的段选择器只使用13位作为索引
   lgdt    gdtdesc
     7c1e:	0f 01 16             	lgdtl  (%esi)
     7c21:	64 7c 0f             	fs jl  7c33 <protcseg+0x1>
@@ -74,6 +74,7 @@ seta20.2:
   
   # Jump to next instruction, but in 32-bit code segment.
   # Switches processor into 32-bit mode.
+  # 保护模式下的code 段选择子（sector）
   ljmp    $PROT_MODE_CSEG, $protcseg
     7c2d:	ea                   	.byte 0xea
     7c2e:	32 7c 08 00          	xor    0x0(%eax,%ecx,1),%bh
@@ -83,6 +84,7 @@ seta20.2:
   .code32                     # Assemble for 32-bit mode
 protcseg:
   # Set up the protected-mode data segment registers
+  # 所有段选择器都指向数据段
   movw    $PROT_MODE_DSEG, %ax    # Our data segment selector
     7c32:	66 b8 10 00          	mov    $0x10,%ax
   movw    %ax, %ds                # -> DS: Data Segment
@@ -229,11 +231,11 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
     7cdd:	89 e5                	mov    %esp,%ebp
     7cdf:	57                   	push   %edi
     7ce0:	56                   	push   %esi
-
-	// round down to sector boundary
+	// 2*9 0~8全部归零 达到对齐效果。1000即 512
 	pa &= ~(SECTSIZE - 1);
 
 	// translate from bytes to sectors, and kernel starts at sector 1
+	// 相对于ELF头的偏移位置，ELF头在1扇区，1000的话即在2扇区
 	offset = (offset / SECTSIZE) + 1;
     7ce1:	8b 7d 10             	mov    0x10(%ebp),%edi
 
@@ -244,7 +246,7 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 {
     7ce4:	53                   	push   %ebx
 	uint32_t end_pa;
-
+	//结束物理内存地址
 	end_pa = pa + count;
     7ce5:	8b 75 0c             	mov    0xc(%ebp),%esi
 
@@ -254,32 +256,32 @@ void
 readseg(uint32_t pa, uint32_t count, uint32_t offset)
 {
     7ce8:	8b 5d 08             	mov    0x8(%ebp),%ebx
-
-	// round down to sector boundary
+	// 2*9 0~8全部归零 达到对齐效果。1000即 512
 	pa &= ~(SECTSIZE - 1);
 
 	// translate from bytes to sectors, and kernel starts at sector 1
+	// 相对于ELF头的偏移位置，ELF头在1扇区，1000的话即在2扇区
 	offset = (offset / SECTSIZE) + 1;
     7ceb:	c1 ef 09             	shr    $0x9,%edi
 void
 readseg(uint32_t pa, uint32_t count, uint32_t offset)
 {
 	uint32_t end_pa;
-
+	//结束物理内存地址
 	end_pa = pa + count;
     7cee:	01 de                	add    %ebx,%esi
-
-	// round down to sector boundary
+	// 2*9 0~8全部归零 达到对齐效果。1000即 512
 	pa &= ~(SECTSIZE - 1);
 
 	// translate from bytes to sectors, and kernel starts at sector 1
+	// 相对于ELF头的偏移位置，ELF头在1扇区，1000的话即在2扇区
 	offset = (offset / SECTSIZE) + 1;
     7cf0:	47                   	inc    %edi
-	uint32_t end_pa;
-
-	end_pa = pa + count;
-
 	// round down to sector boundary
+	// ~(0010 0000 0000-1)&0x2eb
+	// ~(0000 0001 1111 1111)&(0011 1110 1000)
+	//1111 1110 0000 0000&(0011 1110 1000)
+	// 2*9 0~8全部归零 达到对齐效果。1000即 512
 	pa &= ~(SECTSIZE - 1);
     7cf1:	81 e3 00 fe ff ff    	and    $0xfffffe00,%ebx
 	offset = (offset / SECTSIZE) + 1;
@@ -297,14 +299,16 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 		readsect((uint8_t*) pa, offset);
     7cfb:	57                   	push   %edi
     7cfc:	53                   	push   %ebx
+		//当前存放到的位置
 		pa += SECTSIZE;
+		// 第几扇区
 		offset++;
     7cfd:	47                   	inc    %edi
-		// Since we haven't enabled paging yet and we're using
 		// an identity segment mapping (see boot.S), we can
 		// use physical addresses directly.  This won't be the
 		// case once JOS enables the MMU.
 		readsect((uint8_t*) pa, offset);
+		//当前存放到的位置
 		pa += SECTSIZE;
     7cfe:	81 c3 00 02 00 00    	add    $0x200,%ebx
 	while (pa < end_pa) {
@@ -314,7 +318,9 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 		// case once JOS enables the MMU.
 		readsect((uint8_t*) pa, offset);
     7d04:	e8 73 ff ff ff       	call   7c7c <readsect>
+		//当前存放到的位置
 		pa += SECTSIZE;
+		// 第几扇区
 		offset++;
     7d09:	58                   	pop    %eax
     7d0a:	5a                   	pop    %edx
@@ -340,10 +346,9 @@ bootmain(void)
     7d18:	56                   	push   %esi
     7d19:	53                   	push   %ebx
 	struct Proghdr *ph, *eph;
-	// test sync git
-	// not work?
+
 	// read 1st page off disk
-  //ELFHDR = 0x10000 64KB  SIZE = 4KB
+	//从第一个扇区载入4096字节 到 0x10000(物理地址)
 	readseg((uint32_t) ELFHDR, SECTSIZE*8, 0);
     7d1a:	6a 00                	push   $0x0
     7d1c:	68 00 10 00 00       	push   $0x1000
@@ -359,17 +364,21 @@ bootmain(void)
 		goto bad;
 
 	// load each program segment (ignores ph flags)
+	// phoff program segment的偏移量 
+	// ph 为program segment table 所在的地址
 	ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
     7d3a:	a1 1c 00 01 00       	mov    0x1001c,%eax
+	// kernel program segment table last position
 	eph = ph + ELFHDR->e_phnum;
     7d3f:	0f b7 35 2c 00 01 00 	movzwl 0x1002c,%esi
-	// is this a valid ELF?
-	if (ELFHDR->e_magic != ELF_MAGIC)
 		goto bad;
 
 	// load each program segment (ignores ph flags)
+	// phoff program segment的偏移量 
+	// ph 为program segment table 所在的地址
 	ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
     7d46:	8d 98 00 00 01 00    	lea    0x10000(%eax),%ebx
+	// kernel program segment table last position
 	eph = ph + ELFHDR->e_phnum;
     7d4c:	c1 e6 05             	shl    $0x5,%esi
     7d4f:	01 de                	add    %ebx,%esi
@@ -378,30 +387,32 @@ bootmain(void)
     7d53:	73 16                	jae    7d6b <bootmain+0x56>
 		// p_pa is the load address of this segment (as well
 		// as the physical address)
+		// p_offset 相对于elf头的偏移地址
 		readseg(ph->p_pa, ph->p_memsz, ph->p_offset);
     7d55:	ff 73 04             	pushl  0x4(%ebx)
     7d58:	ff 73 14             	pushl  0x14(%ebx)
-		goto bad;
-
-	// load each program segment (ignores ph flags)
+	// phoff program segment的偏移量 
+	// ph 为program segment table 所在的地址
 	ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+	// kernel program segment table last position
 	eph = ph + ELFHDR->e_phnum;
 	for (; ph < eph; ph++)
     7d5b:	83 c3 20             	add    $0x20,%ebx
 		// p_pa is the load address of this segment (as well
 		// as the physical address)
+		// p_offset 相对于elf头的偏移地址
 		readseg(ph->p_pa, ph->p_memsz, ph->p_offset);
     7d5e:	ff 73 ec             	pushl  -0x14(%ebx)
     7d61:	e8 76 ff ff ff       	call   7cdc <readseg>
-		goto bad;
-
-	// load each program segment (ignores ph flags)
+	// phoff program segment的偏移量 
+	// ph 为program segment table 所在的地址
 	ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+	// kernel program segment table last position
 	eph = ph + ELFHDR->e_phnum;
 	for (; ph < eph; ph++)
     7d66:	83 c4 0c             	add    $0xc,%esp
     7d69:	eb e6                	jmp    7d51 <bootmain+0x3c>
-		// as the physical address)
+		// p_offset 相对于elf头的偏移地址
 		readseg(ph->p_pa, ph->p_memsz, ph->p_offset);
 
 	// call the entry point from the ELF header
