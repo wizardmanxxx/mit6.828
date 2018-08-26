@@ -372,24 +372,29 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	int index = PDX(va);
-	if (!(pgdir[index] & PTE_P))
-	{
-		if (create == 0)
-			return NULL;
-		struct PageInfo *p = page_alloc(1);
-		if (p == NULL)
-			return NULL;
-		p->pp_ref = 1;
+	 unsigned int page_off;
+      pte_t * page_base = NULL;
+      struct PageInfo* new_page = NULL;
+      
+      unsigned int dic_off = PDX(va);
+      pde_t * dic_entry_ptr = pgdir + dic_off;
 
-		// 页目录项存储的是页表项的物理地址
-		// 操作系统直接转换的所以自然是物理地址
-		pgdir[index] = page2pa(p) | PTE_P | PTE_U | PTE_W;
-	}
-	// 返回的页表项的虚拟地址
-	pte_t *pte = KADDR(PTE_ADDR(pgdir[index])) + PTX(va);
-
-	return pte;
+      if(!(*dic_entry_ptr & PTE_P))
+      {
+            if(create)
+            {
+                   new_page = page_alloc(1);
+                   if(new_page == NULL) return NULL;
+                   new_page->pp_ref++;
+                   *dic_entry_ptr = (page2pa(new_page) | PTE_P | PTE_W | PTE_U);
+            }
+           else
+               return NULL;      
+      }  
+   
+      page_off = PTX(va);
+      page_base = KADDR(PTE_ADDR(*dic_entry_ptr));
+      return &page_base[page_off];
 }
 
 //
