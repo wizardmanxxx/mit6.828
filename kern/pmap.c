@@ -387,7 +387,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		pgdir[index] = page2pa(p) | PTE_P | PTE_U | PTE_W;
 	}
 	// 返回的页表项的虚拟地址
-	int *pte = KADDR(PTE_ADDR(pgdir[index])) + PTX(va);
+	pte_t *pte = KADDR(PTE_ADDR(pgdir[index])) + PTX(va);
 
 	return pte;
 }
@@ -407,11 +407,11 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	int s = va;
-	int e = va + size;
+	unsigned int s = va;
+	unsigned int e = va + size;
 	while (s < e)
 	{
-		int *p = pgdir_walk(pgdir, (int *)va, 1);
+		pte_t *p = pgdir_walk(pgdir, (int *)va, 1);
 		int tmp = pa | perm | PTE_P;
 		// 返回的虚拟地址，可直接赋值
 		*p = tmp;
@@ -448,7 +448,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-	int *p = pgdir_walk(pgdir, va, 1);
+	pte_t *p = pgdir_walk(pgdir, va, 1);
 	if (p != NULL)
 	{
 		return -E_NO_MEM;
@@ -489,7 +489,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
 
-	int *p = pgdir_walk(pgdir, va, 0);
+	pte_t *p = pgdir_walk(pgdir, va, 0);
 	if (p == NULL)
 		return NULL;
 	if (pte_store != NULL)
@@ -516,7 +516,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
-	int *p = NULL;
+	pte_t *p = NULL;
 	struct PageInfo *page = page_lookup(pgdir, va, &p);
 	if (page != NULL)
 	{
