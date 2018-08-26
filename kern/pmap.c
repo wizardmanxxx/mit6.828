@@ -372,7 +372,24 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	int index = PDX(va);
+	if (!pgdir[index] & PTE_P)
+	{
+		if (create == 0)
+			return NULL;
+		struct PageInfo *p = page_alloc(1);
+		if (p == NULL)
+			return NULL;
+		p->pp_ref = 1;
+
+		// 页目录项存储的是页表项的物理地址
+		// 操作系统直接转换的所以自然是物理地址
+		pgdir[index] = page2pa(p) | PTE_P | PTE_U | PTE_W;
+	}
+	// 返回的页表项的虚拟地址
+	int *pte = KADDR(PTE_ADDR(pgdir[index])) + PTX(va);
+
+	return pte;
 }
 
 //
@@ -390,6 +407,17 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	int s = va;
+	int e = va + size;
+	while (s < e)
+	{
+		int *p = pgdir_walk(pgdir, (int *)va, 1);
+		int tmp = pa | perm | PTE_P;
+		// 返回的虚拟地址，可直接赋值
+		*p = tmp;
+		s += PGSIZE;
+		va += PGSIZE;
+	}
 }
 
 //
@@ -420,6 +448,27 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	int *p = pgdir_walk(pgdir, va, 1);
+	if (p != NULL)
+	{
+		return -E_NO_MEM;
+	}
+	
+	if (*p & PTE_P)
+	{
+		if (page2pa(pp) == PTE_ADDR(*p))
+		{
+			*p = page2pa(pp) | perm | PTE_P;
+		}
+		else
+		{
+			page_remove(pgdir, va);
+			pp->pp_ref++;
+		}
+	}
+	
+	*p = page2pa(pp) | perm | PTE_P;
+
 	return 0;
 }
 
@@ -434,11 +483,19 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 //
 // Hint: the TA solution uses pgdir_walk and pa2page.
 //
+// 双重指针，为了改变指针指向的值
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+
+	int *p = pgdir_walk(pgdir, va, 0);
+	if (p == NULL)
+		return NULL;
+	if (pte_store != NULL)
+		*pte_store = p;
+
+	return pa2page(PTE_ADDR(*p));
 }
 
 //
@@ -459,6 +516,14 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	int *p = NULL;
+	struct PageInfo *page = page_lookup(pgdir, va, &p);
+	if (page != NULL)
+	{
+		*p = 0;
+		page_decref(page);
+		tlb_invalidate(pgdir, va);
+	}
 }
 
 //

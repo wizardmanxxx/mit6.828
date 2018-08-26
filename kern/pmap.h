@@ -69,6 +69,7 @@ void	tlb_invalidate(pde_t *pgdir, void *va);
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
 {
+	//pp-pages 为第几个页帧，左移12bit即为该页所在的物理地址
 	return (pp - pages) << PGSHIFT;
 }
 
