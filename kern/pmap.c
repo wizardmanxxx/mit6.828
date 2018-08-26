@@ -453,20 +453,11 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	{
 		return -E_NO_MEM;
 	}
-	
+	pp->pp_ref++;
 	if (*p & PTE_P)
 	{
-		if (page2pa(pp) == PTE_ADDR(*p))
-		{
-			*p = page2pa(pp) | perm | PTE_P;
-		}
-		else
-		{
-			page_remove(pgdir, va);
-			pp->pp_ref++;
-		}
+		page_remove(pgdir,va);
 	}
-	
 	*p = page2pa(pp) | perm | PTE_P;
 
 	return 0;
