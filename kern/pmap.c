@@ -452,18 +452,18 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 //
 int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
-	pte_t *p = pgdir_walk(pgdir, va, 1);
-	if (p != NULL)
-	{
-		return -E_NO_MEM;
-	}
-	pp->pp_ref++;
-	if (*p & PTE_P)
-	{
-		page_remove(pgdir,va);
-	}
-	*p = page2pa(pp) | perm | PTE_P;
+	 pte_t *entry = NULL;
+    entry =  pgdir_walk(pgdir, va, 1);    //Get the mapping page of this address va.
+    if(entry == NULL) return -E_NO_MEM;
+
+    pp->pp_ref++;
+    if((*entry) & PTE_P)             //If this virtual address is already mapped.
+    {
+        tlb_invalidate(pgdir, va);
+        page_remove(pgdir, va);
+    }
+    *entry = (page2pa(pp) | perm | PTE_P);
+    pgdir[PDX(va)] |= perm;                  //Remember this step!
 
 	return 0;
 }
