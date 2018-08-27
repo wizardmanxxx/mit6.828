@@ -411,20 +411,19 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	unsigned int s = va;
-	unsigned int e = va + size;
-	while (s < e)
-	{
-		pte_t *p = pgdir_walk(pgdir, (int *)va, 1);
-		int tmp = pa | perm | PTE_P;
-		// 返回的虚拟地址，可直接赋值
-		*p = tmp;
-		s += PGSIZE;
+	pte_t *pgtab;
+	size_t pg_num = PGNUM(size);
+	for (size_t i=0; i<pg_num; i++) {
+		pgtab = pgdir_walk(pgdir, (void *)va, 1);
+		if (!pgtab) {
+			return;
+		}
+		//cprintf("va = %p\n", va);
+		*pgtab = pa | perm | PTE_P;
 		va += PGSIZE;
+		pa += PGSIZE;
 	}
 }
-
-//
 // Map the physical page 'pp' at virtual address 'va'.
 // The permissions (the low 12 bits) of the page table entry
 // should be set to 'perm|PTE_P'.
