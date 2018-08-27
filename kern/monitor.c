@@ -6,7 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
-#include <pmap.h>
+#include <kern/pmap.h>
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
@@ -104,11 +104,13 @@ int mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 		return -1;
 	}
 	s = ROUNDDOWN(s,PGSIZE);
-	e = ROUNDUP(s,PGSIZE);
+	e = ROUNDUP(e,PGSIZE);
 	for(uint32_t i = s;i<=e;i+=PGSIZE){
 		uint32_t *entry = pgdir_walk(kern_pgdir,(uint32_t*)i,0);
-		if(entry==NULL||!(*entry&PTE_P))
+		if(entry==NULL||!(*entry&PTE_P)){
 			cprintf( "Virtual address [%08x] - not mapped\n", i);
+			continue;
+		}
 		cprintf( "Virtual address [%08x] - physical address [%08x], permission: ", entry, PTE_ADDR(*entry));
 		char perm_PS = (*entry & PTE_PS) ? 'S':'-';
 		char perm_W = (*entry & PTE_W) ? 'W':'-';
