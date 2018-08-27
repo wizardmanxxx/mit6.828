@@ -177,7 +177,9 @@ void mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-
+	// 映射 upages,upages+ptsize 到pages，pages+ptsize上
+	boot_map_region(kern_pgdir,UPAGES,PTSIZE,PADDR(pages),PTE_U);
+	
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -189,7 +191,7 @@ void mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_W);
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -198,7 +200,7 @@ void mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir,KERNBASE,0xffffffff-KERNBASE,0,PTE_W);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -235,7 +237,7 @@ void mem_init(void)
 // After this is done, NEVER use boot_alloc again.  ONLY use the page
 // allocator functions below to allocate and deallocate physical
 // memory via the page_free_list.
-//
+// 初始化该系统内所有页信息，报错在数组pages内，并形成空闲链表
 void page_init(void)
 {
 	// The example code here marks all physical pages as free.
@@ -289,7 +291,7 @@ void page_init(void)
 // returned physical page with '\0' bytes.  Does NOT increment the reference
 // count of the page - the caller must do these if necessary (either explicitly
 // or via page_insert).
-//
+// 分配一个物理页，返回该页的pageInfo指针
 // Be sure to set the pp_link field of the allocated page to NULL so
 // page_free can check for double-free bugs.
 //
@@ -349,7 +351,7 @@ void page_decref(struct PageInfo *pp)
 // Given 'pgdir', a pointer to a page directory, pgdir_walk returns
 // a pointer to the page table entry (PTE) for linear address 'va'.
 // This requires walking the two-level page table structure.
-//
+// 返回一个虚拟地址对应page table 记录的地址。
 // The relevant page table page might not exist yet.
 // If this is true, and create == false, then pgdir_walk returns NULL.
 // Otherwise, pgdir_walk allocates a new page table page with page_alloc.
@@ -372,7 +374,7 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-int index = PDX(va);
+	int index = PDX(va);
 	if (!(pgdir[index] & PTE_P))
 	{
 		if (create == 0)
@@ -387,7 +389,7 @@ int index = PDX(va);
 		pgdir[index] = page2pa(p) | PTE_P | PTE_U | PTE_W;
 	}
 	// 返回的页表项的虚拟地址
-	
+	// 之前错在没有把数字转成指针，导致非地址相加
 	pte_t *pte = (pte_t *)KADDR(PTE_ADDR(pgdir[index])) + PTX(va);
 
 	return pte;
@@ -395,6 +397,7 @@ int index = PDX(va);
 
 //
 // Map [va, va+size) of virtual address space to physical [pa, pa+size)
+// 映射[va,va+size) 到物理地址[pa,pa+size)
 // in the page table rooted at pgdir.  Size is a multiple of PGSIZE, and
 // va and pa are both page-aligned.
 // Use permission bits perm|PTE_P for the entries.
@@ -425,7 +428,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 // Map the physical page 'pp' at virtual address 'va'.
 // The permissions (the low 12 bits) of the page table entry
 // should be set to 'perm|PTE_P'.
-//
+// 将物理页pp映射到虚拟地址va上
 // Requirements
 //   - If there is already a page mapped at 'va', it should be page_remove()d.
 //   - If necessary, on demand, a page table should be allocated and inserted
@@ -456,7 +459,7 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	pp->pp_ref++;
 	if (*p & PTE_P)
 	{
-		page_remove(pgdir,va);
+		page_remove(pgdir, va);
 	}
 	*p = page2pa(pp) | perm | PTE_P;
 	return 0;
@@ -464,6 +467,7 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 //
 // Return the page mapped at virtual address 'va'.
+// 返回虚拟地址对应的pageInfo
 // If pte_store is not zero, then we store in it the address
 // of the pte for this page.  This is used by page_remove and
 // can be used to verify page permissions for syscall arguments,
@@ -490,6 +494,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 
 //
 // Unmaps the physical page at virtual address 'va'.
+// 取消va虚拟地址的映射关系
 // If there is no physical page at that address, silently does nothing.
 //
 // Details:
