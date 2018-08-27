@@ -411,6 +411,7 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	// 不用块个数，va<va+size   0xf0000000+0x10000000 = 0x00000000 则无法进入循环
 	pte_t *pgtab;
 	size_t pg_num = PGNUM(size);
 	for (size_t i=0; i<pg_num; i++) {

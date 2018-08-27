@@ -6,7 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
-
+#include <pmap.h>
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
@@ -24,7 +24,8 @@ struct Command
 static struct Command commands[] = {
 	{"help", "Display this list of commands", mon_help},
 	{"kerninfo", "Display information about the kernel", mon_kerninfo},
-	{"backtrace","Display the list of called function and stack",mon_backtrace}
+	{"backtrace","Display the list of called function and stack",mon_backtrace},
+	{"showmappings","Display physcial address to virtual address",mon_showmappings}
 };
 #define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
 
@@ -74,6 +75,46 @@ int mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 		int off = ebp[1]-info.eip_fn_addr;
 		cprintf("%s: %d: %s+%d\n",info.eip_file,info.eip_line,fn_name,off);
 		ebp = (int*)(*ebp);
+	}
+
+	return 0;
+}
+
+// 显示虚拟地址映射命令
+int mon_showmappings(int argc, char **argv, struct Trapframe *tf)
+{
+	// Your code here.
+	if (argc != 3) {
+		cprintf("Requir 2 virtual address as arguments.\n");
+		return -1;
+	}
+	char *errChar;
+	uint32_t s = strtol(argv[1],&errChar,16);
+	if (*errChar) {
+		cprintf("Invalid virtual address: %s.\n", argv[1]);
+		return -1;
+	}
+	uint32_t e = strtol(argv[2],&errChar,16);
+	if(*errChar){
+		cprintf("Invalid virtual address: %s.\n", argv[1]);
+		return -1;
+	}
+	if (s > e) {
+		cprintf("Address 1 must be lower than address 2\n");
+		return -1;
+	}
+	s = ROUNDDOWN(s,PGSIZE);
+	e = ROUNDUP(s,PGSIZE);
+	for(uint32_t i = s;i<=e;i+=PGSIZE){
+		uint32_t *entry = pgdir_walk(kern_pgdir,(uint32_t*)i,0);
+		if(entry==NULL||!(*entry&PTE_P))
+			cprintf( "Virtual address [%08x] - not mapped\n", i);
+		cprintf( "Virtual address [%08x] - physical address [%08x], permission: ", entry, PTE_ADDR(*entry));
+		char perm_PS = (*entry & PTE_PS) ? 'S':'-';
+		char perm_W = (*entry & PTE_W) ? 'W':'-';
+		char perm_U = (*entry & PTE_U) ? 'U':'-';
+		// 进入 else 分支说明 PTE_P 肯定为真了
+		cprintf( "-%c----%c%cP\n", perm_PS, perm_U, perm_W);
 	}
 
 	return 0;
