@@ -160,6 +160,8 @@ void mem_init(void)
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
 
+	envs = (struct Env *)boot_alloc(sizeof(struct Env) * NENV);
+	memset(envs, 0, sizeof(struct Env) * NENV);
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -183,8 +185,8 @@ void mem_init(void)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
 	// 映射 upages,upages+ptsize 到pages，pages+ptsize上
-	boot_map_region(kern_pgdir,UPAGES,PTSIZE,PADDR(pages),PTE_U);
-	
+	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U);
+
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
 	// (ie. perm = PTE_U | PTE_P).
@@ -192,7 +194,7 @@ void mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-
+	boot_map_region(kern_pgdir, UENVS, PTSIZE, PADDR(envs), PTE_U);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -204,7 +206,7 @@ void mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_W);
+	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -213,7 +215,7 @@ void mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir,KERNBASE,0xffffffff-KERNBASE,0,PTE_W);
+	boot_map_region(kern_pgdir, KERNBASE, 0xffffffff - KERNBASE, 0, PTE_W);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -427,9 +429,11 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	// 不用块个数，va<va+size   0xf0000000+0x10000000 = 0x00000000 则无法进入循环
 	pte_t *pgtab;
 	size_t pg_num = PGNUM(size);
-	for (size_t i=0; i<pg_num; i++) {
+	for (size_t i = 0; i < pg_num; i++)
+	{
 		pgtab = pgdir_walk(pgdir, (void *)va, 1);
-		if (!pgtab) {
+		if (!pgtab)
+		{
 			return;
 		}
 		//cprintf("va = %p\n", va);
@@ -565,8 +569,7 @@ static uintptr_t user_mem_check_addr;
 // Returns 0 if the user program can access this range of addresses,
 // and -E_FAULT otherwise.
 //
-int
-user_mem_check(struct Env *env, const void *va, size_t len, int perm)
+int user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
 
@@ -580,16 +583,16 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 // If it cannot, 'env' is destroyed and, if env is the current
 // environment, this function will not return.
 //
-void
-user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
+void user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
 {
-	if (user_mem_check(env, va, len, perm | PTE_U) < 0) {
+	if (user_mem_check(env, va, len, perm | PTE_U) < 0)
+	{
 		cprintf("[%08x] user_mem_check assertion failure for "
-			"va %08x\n", env->env_id, user_mem_check_addr);
-		env_destroy(env);	// may not return
+				"va %08x\n",
+				env->env_id, user_mem_check_addr);
+		env_destroy(env); // may not return
 	}
 }
-
 
 // --------------------------------------------------------------
 // Checking functions.
@@ -757,7 +760,7 @@ check_kern_pgdir(void)
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 
 	// check envs array (new test for lab 3)
-	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
+	n = ROUNDUP(NENV * sizeof(struct Env), PGSIZE);
 	for (i = 0; i < n; i += PGSIZE)
 		assert(check_va2pa(pgdir, UENVS + i) == PADDR(envs) + i);
 
