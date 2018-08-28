@@ -289,8 +289,8 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   (Watch out for corner-cases!)
 
 	pte_t *s = (pte_t *)ROUNDDOWN((pte_t)va, PGSIZE);
-	pte_t *e = (pte_t *)ROUNDUP((pte_t)va + len, PGSIZE);
-	while (s < e)
+	pte_t *end = (pte_t *)ROUNDUP((pte_t)va + len, PGSIZE);
+	while (s < end)
 	{
 		struct PageInfo *p = page_alloc(1);
 		if (p == NULL)
@@ -342,7 +342,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  ph->p_va.  Any remaining memory bytes should be cleared to zero.
 	//  (The ELF header should have ph->p_filesz <= ph->p_memsz.)
 	//  Use functions from the previous lab to allocate and map pages.
-	struct Elf *elf = binary;
+	struct Elf *elf =(struct Elf *) binary;
 	if (elf->e_magic != ELF_MAGIC)
 	{
 		panic("this binary is not elf");
