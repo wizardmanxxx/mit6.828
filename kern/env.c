@@ -124,9 +124,9 @@ void env_init(void)
 		envs[i].env_link = &envs[i + 1];
 	}
 	envs[NENV - 1].env_id = 0;
-	envs[NENV - 2].env_link = &envs[NENV - 1];
+	envs[NENV - 2].env_link = &envs[NENV - 1];*/
 	// Per-CPU part of the initialization
-	env_init_percpu(); */
+	env_init_percpu(); 
 }
 
 // Load GDT and segment descriptors.
