@@ -482,7 +482,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
   8002d9:	eb e9                	jmp    8002c4 <vprintfmt+0x8e>
 			goto process_precision;//跳转到process_precistion子过程
 
-		case '*'://*--代表有效数字的位数也是由输入参数指定的，比如printf("%*.*f", 10, 2, n)，其中10,2就是用来指定显示的有效数字位数的
+		case '*'://代表有效数字的位数也是由输入参数指定的，比如printf("%*.*f", 10, 2, n)，其中10,2就是用来指定显示的有效数字位数的
 			precision = va_arg(ap, int);
   8002db:	8b 45 14             	mov    0x14(%ebp),%eax
   8002de:	8b 00                	mov    (%eax),%eax
@@ -500,7 +500,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			}
 			goto process_precision;//跳转到process_precistion子过程
 
-		case '*'://*--代表有效数字的位数也是由输入参数指定的，比如printf("%*.*f", 10, 2, n)，其中10,2就是用来指定显示的有效数字位数的
+		case '*'://代表有效数字的位数也是由输入参数指定的，比如printf("%*.*f", 10, 2, n)，其中10,2就是用来指定显示的有效数字位数的
 			precision = va_arg(ap, int);
 			goto process_precision;
   8002ef:	eb 2a                	jmp    80031b <vprintfmt+0xe5>

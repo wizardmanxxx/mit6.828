@@ -134,11 +134,13 @@ void env_init(void)
 }
 
 // Load GDT and segment descriptors.
+// 换个段表
 void env_init_percpu(void)
 {
 	lgdt(&gdt_pd);
 	// The kernel never uses GS or FS, so we leave those set to
 	// the user data segment.
+	// kernel 不使用gs和fs，所以这两个寄存器给用户数据段
 	asm volatile("movw %%ax,%%gs" ::"a"(GD_UD | 3));
 	asm volatile("movw %%ax,%%fs" ::"a"(GD_UD | 3));
 	// The kernel does use ES, DS, and SS.  We'll change between
