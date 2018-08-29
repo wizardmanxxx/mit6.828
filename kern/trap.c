@@ -65,7 +65,51 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	void handler0();
+	void handler1();
+	void handler2();
+	void handler3();
+	void handler4();
+	void handler5();
+	void handler6();
+	void handler7();
+	void handler8();
 
+	void handler10();
+	void handler11();
+	void handler12();
+	void handler13();
+	void handler14();
+
+	void handler16();
+	void handler17();
+	void handler18();
+	void handler19();
+	void handler48();
+
+	SETGATE(idt[T_DIVIDE], 1, GD_KT, handler0, 0);
+	SETGATE(idt[T_DEBUG], 1, GD_KT, handler1, 0);
+	SETGATE(idt[T_NMI], 1, GD_KT, handler2, 0);
+	SETGATE(idt[T_BRKPT], 1, GD_KT, handler3, 0);
+	SETGATE(idt[T_OFLOW], 1, GD_KT, handler4, 0);
+	SETGATE(idt[T_BOUND], 1, GD_KT, handler5, 0);
+	SETGATE(idt[T_ILLOP], 1, GD_KT, handler6, 0);
+	SETGATE(idt[T_DEVICE], 1, GD_KT, handler7, 0);
+	SETGATE(idt[T_DBLFLT], 1, GD_KT, handler8, 0);
+
+	SETGATE(idt[T_TSS], 1, GD_KT, handler10, 0);
+	SETGATE(idt[T_SEGNP], 1, GD_KT, handler11, 0);
+	SETGATE(idt[T_STACK], 1, GD_KT, handler12, 0);
+	SETGATE(idt[T_GPFLT], 1, GD_KT, handler13, 0);
+	SETGATE(idt[T_PGFLT], 1, GD_KT, handler14, 0);
+	
+	SETGATE(idt[T_FPERR], 1, GD_KT, handler16, 0);
+	SETGATE(idt[T_ALIGN], 1, GD_KT, handler17, 0);
+	SETGATE(idt[T_MCHK], 1, GD_KT, handler18, 0);
+	SETGATE(idt[T_SIMDERR], 1, GD_KT, handler19, 0);
+
+	// interrupt
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, handler48, 0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }

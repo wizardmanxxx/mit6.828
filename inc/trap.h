@@ -1,7 +1,7 @@
 #ifndef JOS_INC_TRAP_H
 #define JOS_INC_TRAP_H
 
-// Trap numbers
+// Trap numbers 
 // These are processor defined:
 #define T_DIVIDE     0		// divide error
 #define T_DEBUG      1		// debug exception
@@ -59,10 +59,12 @@ struct Trapframe {
 	struct PushRegs tf_regs;
 	uint16_t tf_es;
 	uint16_t tf_padding1;
-	uint16_t tf_ds;
+	uint16_t tf_ds; 
 	uint16_t tf_padding2;
-	uint32_t tf_trapno;
-	/* below here defined by x86 hardware */
+	uint32_t tf_trapno; //中断码
+	/* below here defined by x86 hardware 
+	* 由cpu自动入栈
+	*/
 	uint32_t tf_err;
 	uintptr_t tf_eip;
 	uint16_t tf_cs;

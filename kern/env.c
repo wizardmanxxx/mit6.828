@@ -25,15 +25,15 @@ static struct Env *env_free_list; // Free environment list
 // kernel mode and user mode.  Segments serve many purposes on the x86.
 // We don't use any of their memory-mapping capabilities, but we need
 // them to switch privilege levels.
-//
+// 不使用段表的内存映射能力，仅使用其权限功能
 // The kernel and user segments are identical except for the DPL.
 // To load the SS register, the CPL must equal the DPL.  Thus,
 // we must duplicate the segments for the user and the kernel.
-//
+// 内核和用户端出了DPL完全一样，为了加载ss寄存器，CPL必须等于DPL，因此我们必须复制多个段给用户和内核
 // In particular, the last argument to the SEG macro used in the
 // definition of gdt specifies the Descriptor Privilege Level (DPL)
 // of that descriptor: 0 for kernel and 3 for user.
-//
+// SEG宏的最后参数为DPL，内核0，用户3
 struct Segdesc gdt[] =
 	{
 		// 0x0 - unused (always faults -- for trapping NULL far pointers)
@@ -482,7 +482,7 @@ void env_destroy(struct Env *e)
 //
 // Restores the register values in the Trapframe with the 'iret' instruction.
 // This exits the kernel and starts executing some environment's code.
-//
+// 
 // This function does not return.
 //
 void env_pop_tf(struct Trapframe *tf)
