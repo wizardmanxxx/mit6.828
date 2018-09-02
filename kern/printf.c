@@ -1,6 +1,6 @@
 // Simple implementation of cprintf console output for the kernel,
 // based on printfmt() and the kernel console's cputchar().
-
+// 为内核实现的控制台输出，使用的是cputchar()
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/stdarg.h>

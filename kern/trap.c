@@ -11,6 +11,12 @@
 
 static struct Taskstate ts;
 
+/* 中断执行过程：
+	cpu收到int中断后，自动从tr段寄存器隐藏字段中获取tss地址，获取ss0,esp0,为内核栈地址
+	切换到内核栈之后，自动push SS, ESP, EFLAGS, CS, EIP。
+	根据中断向量号，根据IDTR寄存器(linear address)找到IDT起始地址，获取中断描述符，获取对应的cs，eip，转而交由
+	中断处理程序继续执行。 */
+
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
  * additional information in the latter case.
@@ -86,7 +92,8 @@ trap_init(void)
 	void handler18();
 	void handler19();
 	void handler48();
-
+	// 设置中断向量表IDT，发生中断后cpu从中断寄存器中根据索引（int 30 ..）找到该中断描述符
+	// 获取cs 和 所在处理函数的偏移地址，并将cs，ip设置为当前cs，ip执行
 	SETGATE(idt[T_DIVIDE], 1, GD_KT, handler0, 0);
 	SETGATE(idt[T_DEBUG], 1, GD_KT, handler1, 0);
 	SETGATE(idt[T_NMI], 1, GD_KT, handler2, 0);
@@ -130,6 +137,7 @@ trap_init_percpu(void)
 
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
+	// 加载tss段寄存器，放到tr寄存器中，像其他段选择器一样，底部三位有特别用处，置位零
 	ltr(GD_TSS0);
 
 	// Load the IDT
@@ -187,15 +195,25 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	switch(tf->tf_trapno){
+		case 14:
+			page_fault_handler(tf);
+			break;
+		case 3:
+			monitor(tf);
+			break;
+		default:
+			print_trapframe(tf);
+			if (tf->tf_cs == GD_KT)
+				panic("unhandled trap in kernel");
+			else {
+				env_destroy(curenv);
+				return;
+			}
 
-	// Unexpected trap: The user process or the kernel has a bug.
-	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
-		panic("unhandled trap in kernel");
-	else {
-		env_destroy(curenv);
-		return;
 	}
+	// Unexpected trap: The user process or the kernel has a bug.
+	
 }
 
 void
@@ -208,12 +226,14 @@ trap(struct Trapframe *tf)
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
+	// 检查中断是否被关闭
 	assert(!(read_eflags() & FL_IF));
 
 	cprintf("Incoming TRAP frame at %p\n", tf);
 
 	if ((tf->tf_cs & 3) == 3) {
 		// Trapped from user mode.
+		// 用户模式陷入
 		assert(curenv);
 
 		// Copy trap frame (which is currently on the stack)
@@ -221,6 +241,7 @@ trap(struct Trapframe *tf)
 		// will restart at the trap point.
 		curenv->env_tf = *tf;
 		// The trapframe on the stack should be ignored from here on.
+		
 		tf = &curenv->env_tf;
 	}
 
@@ -246,7 +267,6 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-
 	// LAB 3: Your code here.
 
 	// We've already handled kernel-mode exceptions, so if we get here,

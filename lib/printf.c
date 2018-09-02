@@ -1,6 +1,6 @@
 // Implementation of cprintf console output for user environments,
 // based on printfmt() and the sys_cputs() system call.
-//
+// 为用户环境实现控制台输出
 // cprintf is a debugging statement, not a generic output statement.
 // It is very important that it always go to the console, especially when
 // debugging file descriptor code!

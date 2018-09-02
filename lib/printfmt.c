@@ -105,7 +105,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		switch (ch = *(unsigned char *) fmt++) {//根据位于'%'后面的第一个字符进行分情况处理
 
 		// flag to pad on the right
-		case '-'://%后面的'-'代表要进行左对齐输出，右边填空格，如果省略代表右对齐
+		case '-'://后面的'-'代表要进行左对齐输出，右边填空格，如果省略代表右对齐
 			padc = '-';//如果有这个字符代表左对齐，则把对齐方式标志位变为'-'
 			goto reswitch;//处理下一个字符
 
@@ -132,7 +132,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			}
 			goto process_precision;//跳转到process_precistion子过程
 
-		case '*'://*--代表有效数字的位数也是由输入参数指定的，比如printf("%*.*f", 10, 2, n)，其中10,2就是用来指定显示的有效数字位数的
+		case '*'://代表有效数字的位数也是由输入参数指定的，比如printf("%*.*f", 10, 2, n)，其中10,2就是用来指定显示的有效数字位数的
 			precision = va_arg(ap, int);
 			goto process_precision;
 
