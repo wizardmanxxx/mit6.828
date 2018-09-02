@@ -97,7 +97,7 @@ trap_init(void)
 	SETGATE(idt[T_DIVIDE], 1, GD_KT, handler0, 0);
 	SETGATE(idt[T_DEBUG], 1, GD_KT, handler1, 0);
 	SETGATE(idt[T_NMI], 1, GD_KT, handler2, 0);
-	SETGATE(idt[T_BRKPT], 1, GD_KT, handler3, 0);
+	SETGATE(idt[T_BRKPT], 1, GD_KT, handler3, 3);
 	SETGATE(idt[T_OFLOW], 1, GD_KT, handler4, 0);
 	SETGATE(idt[T_BOUND], 1, GD_KT, handler5, 0);
 	SETGATE(idt[T_ILLOP], 1, GD_KT, handler6, 0);
@@ -116,7 +116,7 @@ trap_init(void)
 	SETGATE(idt[T_SIMDERR], 1, GD_KT, handler19, 0);
 
 	// interrupt
-	SETGATE(idt[T_SYSCALL], 0, GD_KT, handler48, 0);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, handler48,3);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -201,6 +201,14 @@ trap_dispatch(struct Trapframe *tf)
 			break;
 		case 3:
 			monitor(tf);
+			break;
+		case 48:
+			tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,
+											tf->tf_regs.reg_edx,
+											tf->tf_regs.reg_ecx,
+											tf->tf_regs.reg_ebx,
+											tf->tf_regs.reg_edi,
+											tf->tf_regs.reg_esi);
 			break;
 		default:
 			print_trapframe(tf);
